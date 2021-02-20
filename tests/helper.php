@@ -94,6 +94,7 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->prtincorrectformat = FORMAT_HTML;
         $q->generalfeedback = '';
         $q->variantsselectionseed = '';
+        $q->compiledcache = array();
 
         $q->inputs = array();
         $q->prts = array();
@@ -1193,7 +1194,8 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->inputs['ans1'] = stack_input_factory::make(
                 'algebraic', 'ans1', '[x+y=1,x-y=1]', null, array('boxWidth' => 25));
 
-        $feedbackvars = new stack_cas_keyval('');
+        // This will generate a runtime error in the feedback variables.
+        $feedbackvars = new stack_cas_keyval('S1:1/(7-rhs(first(ans1)));');
 
         $sans = stack_ast_container::make_from_teacher_source('all_listp(equationp,ans1)');
         $sans->get_valid();
@@ -1325,6 +1327,7 @@ class qtype_stack_test_helper extends question_test_helper {
         $qdata->options->logicsymbol               = 'lang';
         $qdata->options->matrixparens              = '[';
         $qdata->options->variantsselectionseed     = '';
+        $qdata->options->compiledcache             = null;
 
         $input = new stdClass();
         $input->name               = 'ans1';
@@ -1449,6 +1452,7 @@ class qtype_stack_test_helper extends question_test_helper {
         $qdata->options->logicsymbol               = 'lang';
         $qdata->options->matrixparens              = '[';
         $qdata->options->variantsselectionseed     = '';
+        $qdata->options->compiledcache             = null;
 
         $input = new stdClass();
         $input->name               = 'ans1';
@@ -2076,7 +2080,11 @@ class qtype_stack_test_helper extends question_test_helper {
         $q = self::make_a_stack_question();
 
         $q->name = 'test-checkbox-empty';
-        $q->questionvariables = '';
+        $q->questionvariables =
+            'texput(olor, lambda([z], block([a,b], [a,b]:args(z), sconcat("\\left(",tex1(a),",",tex1(b),"\\right)"))));' .
+            // A silly example but brackets mess up the regular expression in the test construction.
+            // This is just to make sure the texput gets into the checkbox input mechanism with a function.
+            'texput(clcr, lambda([z], block([a,b], [a,b]:args(z), sconcat("{\\diamond}",tex1(a),",",tex1(b)))));';
         $q->questiontext = 'Which of these are true? [[input:ans1]]
                            [[validation:ans1]]';
 
@@ -2084,7 +2092,7 @@ class qtype_stack_test_helper extends question_test_helper {
         $q->penalty = 0.3; // Non-zero and not the default.
 
         $q->inputs['ans1'] = stack_input_factory::make(
-                'checkbox', 'ans1', '[[x^2+1<0,false],[A,false,"Generalizations are false"]]', null, null);
+                'checkbox', 'ans1', '[[x^2+1<0,false],[A,false,"Generalizations are false"],[clcr(a,b), false]]', null, null);
 
         $q->options->questionsimplify = 0;
 
@@ -2337,10 +2345,22 @@ class qtype_stack_test_helper extends question_test_helper {
         $sans->get_valid();
         $tans = stack_ast_container::make_from_teacher_source('6*(x-2)^(2*k)');
         $tans->get_valid();
-        $node = new stack_potentialresponse_node($sans, $tans, 'AlgEquiv');
-        $node->add_branch(0, '=', 0, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-F');
-        $node->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-T');
-        $q->prts['firsttree'] = new stack_potentialresponse_tree('firsttree', '', true, 1, null, array($node), '0', 1);
+        $node1 = new stack_potentialresponse_node($sans, $tans, 'AlgEquiv');
+        $node1->add_branch(0, '=', 0, $q->penalty, 1, '', FORMAT_HTML, 'firsttree-1-F');
+        $node1->add_branch(1, '=', 1, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-1-T');
+
+        $sans = stack_ast_container::make_from_teacher_source('ans1');
+        $sans->get_valid();
+        $tans = stack_ast_container::make_from_teacher_source('a^(x*y)');
+        $tans->get_valid();
+        $node2 = new stack_potentialresponse_node($sans, $tans, 'AlgEquiv');
+        $node2->add_branch(0, '=', 0, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-2-F');
+        $node2->add_branch(1, '=', 0.6, $q->penalty, -1, '', FORMAT_HTML, 'firsttree-2-T');
+
+        $feedbackvars = new stack_cas_keyval('assume(a>0);', null, null);
+
+        $q->prts['firsttree'] = new stack_potentialresponse_tree('firsttree', '', true, 1, $feedbackvars->get_session(),
+                array($node1, $node2), '0', 1);
 
         return $q;
     }

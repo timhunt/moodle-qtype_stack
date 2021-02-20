@@ -24,7 +24,7 @@ Feedback as to the syntactic validity of a response is positioned using a corres
 
 This tag must be included even if validation is suppressed with an option (see below) and is automatically generated after the input if it does not exist.
 
-We expose the exact behaviour of the validation by giving registered users access to STACK's test suite validation of student's answers.  This can be found on a live server at https://stack-demo.maths.ed.ac.uk/demo/question/type/stack/studentinputs.php
+We expose the exact behaviour of the validation by giving registered users access to STACK's test suite validation of student's answers.  This can be found on a live server at `https://stack-demo.maths.ed.ac.uk/demo/question/type/stack/adminui/studentinputs.php`
 
 Each input may have a number of options and this is potentially complex area with a large range of possibilities.
 
@@ -99,7 +99,10 @@ The dropdown, checkbox and radio input types enable teachers to create [multiple
 #### String input ####
 
 This is a normal input into which students may type whatever they choose.  It is always converted into a Maxima string internally.
-Note that there is no way whatsoever to parse the student's string into a Maxima expression.  If you accept a string, then it will always remain a string! You can't later check for algebraic equivalence. The only tests available will be simple string matches, etc.
+Notes
+
+1.  There is no way whatsoever to parse the student's string into a Maxima expression.  If you accept a string, then it will always remain a string! You can't later check for algebraic equivalence. The only tests available will be simple string matches, etc.
+2.  An empty answer will be blank unless you use the `allowempty` option in which case the answer will be interpreted as an empty string, i.e. `""` rather than `EMPTYANSWER` as would be the case with other inputs.
 
 #### Notes input ####
 

@@ -5,11 +5,17 @@ past development history is documented on [Development history](Development_hist
 
 How to report bugs and make suggestions is described on the [community](../About/Community.md) page.
 
+## Version 4.3.9
+
+* Done: Add in additional cache `compiledcache` to reduce validation overheads by compiling questions.
+* Done. Add in local.mac for site specific code.
+* Done. Move STACK admin UI scripts to `adminui`.
+
 ## Version 4.4
 
 1. Caching validation.
 2. Compiled PRTs.
-3. 4. CASText2.
+3. CASText2.
 
 ## Maxima side PRTs.
 

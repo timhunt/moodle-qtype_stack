@@ -140,7 +140,16 @@ class stack_bulk_tester  {
             }
 
             foreach ($questionids as $questionid => $name) {
-                $question = question_bank::load_question($questionid);
+                try {
+                    $question = question_bank::load_question($questionid);
+                } catch (Exception $e) {
+                    $message = $questionid . ', ' . format_string($name) .
+                        ': ' . stack_string('errors') . ' : ' . $e;
+                    $allpassed = false;
+                    $failingupgrade[] = $message;
+                    continue;
+                }
+
                 if ($outputmode == 'web') {
                     $questionname = format_string($name);
                     $questionnamelink = html_writer::link(new moodle_url($questiontestsurl,
@@ -387,6 +396,12 @@ class stack_bulk_tester  {
         $workedsolution = $qu->get_generalfeedback_castext();
         $workedsolution->get_display_castext();
         $questionote = $qu->get_question_summary();
+
+        // As we cloned the question any and all updates to the cache will not sync.
+        // So lets do that ourselves.
+        if ($qu->compiledcache !== $question->compiledcache) {
+            $question->compiledcache = $qu->compiledcache;
+        }
     }
 
     /**

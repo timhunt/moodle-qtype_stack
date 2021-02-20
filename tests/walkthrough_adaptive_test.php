@@ -1790,7 +1790,7 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
         $this->check_current_mark(null);
         $this->check_prt_score('prt1', null, null);
         $this->render();
-        $expected = 'Seed: 1; ans1: 0 [score]; prt1: !';
+        $expected = 'Seed: 1; ans1: 0 [score]; prt1: [RUNTIME_ERROR] !';
         $this->check_response_summary($expected);
         $this->check_output_contains_text_input('ans1', '0');
         $this->check_output_contains_input_validation('ans1');
@@ -2326,7 +2326,7 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
         $this->check_current_mark(null);
         $this->check_prt_score('Result', null, null);
         $this->render();
-        $expected = 'Seed: 1; ans1: [2*sin(x)*y=1,x+y=1] [score]; Result: # =  | ATLogic_True. | Result-0-T';
+        $expected = 'Seed: 1; ans1: [2*sin(x)*y=1,x+y=1] [score]; Result: [RUNTIME_ERROR] # =  | ATLogic_True. | Result-0-T';
         $this->check_response_summary($expected);
         $this->check_output_contains_text_input('ans1', '[2*sin(x)*y=1,x+y=1]');
         $this->check_output_contains_input_validation('ans1');
@@ -2342,6 +2342,54 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
         );
     }
 
+    public function test_runtime_err_feedback_variables() {
+
+        $q = test_question_maker::make_question('stack', 'runtime_prt_err');
+        $this->start_attempt_at_question($q, 'adaptive', 1);
+
+        $this->render();
+
+        // Process a validate request.
+        $this->process_submission(array('ans1' => '[x=7,2*sin(x)*y=1]', '-submit' => 1));
+
+        $this->check_current_state(question_state::$todo);
+        $this->check_current_mark(null);
+        $this->check_prt_score('Result', null, null);
+        $this->render();
+        $this->check_output_contains_text_input('ans1', '[x=7,2*sin(x)*y=1]');
+        $this->check_output_contains_input_validation('ans1');
+        $this->check_output_does_not_contain_prt_feedback();
+        $this->check_output_does_not_contain_stray_placeholders();
+
+        // Process a submit of the incorrect answer.
+        $this->process_submission(array('ans1' => '[x=7,2*sin(x)*y=1]', 'ans1_val' => '[x=7,2*sin(x)*y=1]', '-submit' => 1));
+
+        // Note, errors in the feedback variables themselves do not cause an invalid request, or stop the PRT.
+        // That is the intended behaviour, unlike entries to PRT nodes themselves which must be error free.
+
+        // Verify.
+        $this->check_current_state(question_state::$todo);
+        $this->check_current_mark(0);
+        $this->check_prt_score('Result', 0, 0);
+        $this->render();
+        // But, we do expect to see that a runtime error has occured in the trace for debugging other people's questions!
+        $expected = 'Seed: 1; ans1: [x=7,2*sin(x)*y=1] [score]; Result: ' .
+                '[RUNTIME_FV_ERROR] # = 0 | ATAlgEquiv_SA_not_logic. | Result-0-F';
+        $this->check_response_summary($expected);
+        $this->check_output_contains_text_input('ans1', '[x=7,2*sin(x)*y=1]');
+        $this->check_output_contains_input_validation('ans1');
+        $this->check_output_contains_prt_feedback('Result');
+        $this->check_output_does_not_contain_stray_placeholders();
+        // Note from version 5.37.0 of Maxima the precise form of the error message changed.
+
+        $this->check_current_output(
+                // Some inconsistencey in Maxima error messages, so shortening search string.
+                new question_pattern_expectation('/Division by zero./'),
+                $this->get_does_not_contain_num_parts_correct(),
+                $this->get_no_hint_visible_expectation()
+                );
+    }
+
     public function test_runtime_error_session() {
 
         $q = test_question_maker::make_question('stack', 'runtime_ses_err');
@@ -2349,7 +2397,7 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
         $this->render();
 
         $rte = implode(' ', array_keys($q->runtimeerrors));
-        $err = 'The field ""Question variables"" generated the following error: Expected "#pm#", "%not ", "\'", "\'\'", ' .
+        $err = 'Error(s) in question-variables: Expected "#pm#", "%not ", "\'", "\'\'", ' .
                 '"(", "+", "+-", "-", "? ", "?", "?? ", "[", "do", "for", "from", "if", "in", "next", "not ", "not", ' .
                 '"nounnot ", "nounnot", "step", "thru", "unless", "while", "{", "|", boolean, comment, end of input, float, ' .
                 'identifier, integer, string or whitespace but ")" found. (At about line 1 character 11.)';
@@ -3002,7 +3050,6 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
 
     public function test_checkbox_empty() {
 
-        // Create the stack question 'equiv_quad'.
         $q = test_question_maker::make_question('stack', 'checkbox_all_empty');
 
         $this->start_attempt_at_question($q, 'adaptive', 1);
@@ -3016,6 +3063,7 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
         $this->check_output_does_not_contain_stray_placeholders();
         $this->check_current_output(
                 new question_pattern_expectation('/Which of/'),
+                new question_pattern_expectation('/diamond/'),
                 $this->get_does_not_contain_feedback_expectation(),
                 $this->get_does_not_contain_num_parts_correct(),
                 $this->get_no_hint_visible_expectation()
@@ -3349,7 +3397,6 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
 
     public function test_test_contextvars() {
 
-        // Create the stack question 'stringsloppy'.
         $q = test_question_maker::make_question('stack', 'contextvars');
         $this->start_attempt_at_question($q, 'adaptive', 1);
 
@@ -3386,7 +3433,7 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
         $this->check_current_state(question_state::$todo);
         $this->check_current_mark(0);
         $this->check_prt_score('firsttree', 0, 0.35);
-        $this->check_answer_note('firsttree', 'firsttree-1-F');
+        $this->check_answer_note('firsttree', 'firsttree-1-F | firsttree-2-F');
 
         // Process the correct answer.  Needs the assumption x>2 for ATAlgEquiv to correctly work.
         $this->process_submission(array('ans1' => '6*((x-2)^2)^k', '-submit' => 1));
@@ -3408,5 +3455,49 @@ class qtype_stack_walkthrough_adaptive_test extends qtype_stack_walkthrough_test
         $this->check_current_mark(0.65);
         $this->check_prt_score('firsttree', 1, 0);
         $this->check_answer_note('firsttree', 'firsttree-1-T');
+    }
+
+    public function test_test_contextvars_feedbackvars() {
+
+        // Create a situation which requires contextvars defined only in the feedbackvars.
+        $q = test_question_maker::make_question('stack', 'contextvars');
+        $this->start_attempt_at_question($q, 'adaptive', 1);
+
+        // Check the initial state.
+        $this->check_current_state(question_state::$todo);
+        $this->assertEquals('adaptivemultipart',
+                $this->quba->get_question_attempt($this->slot)->get_behaviour_name());
+        $this->render();
+        $this->check_output_contains_text_input('ans1');
+        $this->check_output_does_not_contain_input_validation();
+        $this->check_output_does_not_contain_prt_feedback();
+        $this->check_output_does_not_contain_stray_placeholders();
+        $this->check_current_output(
+                new question_pattern_expectation('/diamond/'),
+                $this->get_does_not_contain_feedback_expectation(),
+                $this->get_does_not_contain_num_parts_correct(),
+                $this->get_no_hint_visible_expectation()
+                );
+
+        // Process a validate request.
+        $this->process_submission(array('ans1' => '(a^x)^y', '-submit' => 1));
+
+        $this->check_current_state(question_state::$todo);
+        $this->check_current_mark(null);
+        $this->check_prt_score('firsttree', null, null);
+        $this->render();
+        $this->check_output_contains_text_input('ans1', '(a^x)^y');
+        $this->check_output_contains_input_validation('ans1');
+        $this->check_output_does_not_contain_prt_feedback();
+        $this->check_output_does_not_contain_stray_placeholders();
+
+        // Process a submition of an answer which is only partially correct
+        // because of an assume in the feedback variables.
+        $this->process_submission(array('ans1' => '(a^x)^y', 'ans1_val' => '(a^x)^y', '-submit' => 1));
+        $this->check_current_state(question_state::$todo);
+        $this->check_current_mark(0.6);
+        $this->check_prt_score('firsttree', 0.6, 0.35);
+        $this->check_answer_note('firsttree', 'firsttree-1-F | firsttree-2-T');
+
     }
 }

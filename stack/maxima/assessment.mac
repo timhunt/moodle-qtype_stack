@@ -49,6 +49,7 @@ safe_op(ex) := block([st],
     if atom(ex) then return(""),
     if op(ex) = "-" then return("-"),
     if op(ex) = "/" then return("/"),
+    if op(ex) = "integrate" then return("int"),
     /* Catch a subscript. */
     if mapatom(ex) then return(""),
     if stringp(op(ex)) then return(op(ex)),
@@ -541,6 +542,15 @@ remove_displaydp(ex):= block(
     return(first(args(ex)))
 );
 
+/* Remove all forms of inert wrappers of numbers. */
+remove_numerical_inert(ex) := block(
+    if atom(ex) then return(ex),
+    if safe_op(ex) = "displaysci" then return(first(args(ex))*10^third(args(ex))),
+    if safe_op(ex) = "displaysf" then return(first(args(ex))),
+    if not(freeof(displaydp, ex)) then return(remove_displaydp(ex)),
+    return(ex)
+)$
+
 /* Write the number ex in n decimal places */
 decimalplacesfun(ex, n, dispdps) := block([ex2],
     ex2:ev(float(round(10^n*float(ex))/(10^n)), lg=logbasesimp, simp),
@@ -727,10 +737,8 @@ algebraic_equivalence(SA, SB) :=
     /* Remove binomial function from expressions. */
     SA:subst(binomial=lambda([a,b],a!/(b!*(a-b)!)), SA),
     SB:subst(binomial=lambda([a,b],a!/(b!*(a-b)!)), SB),
-    if not(freeof(displaydp, SA)) then
-      SA:remove_displaydp(SA),
-    if not(freeof(displaydp, SB)) then
-      SA:remove_displaydp(SB),
+    SA:remove_numerical_inert(SA),
+    SB:remove_numerical_inert(SB),
     /* Remove logarithms to other bases from expressions. */
     if not(freeof(lg, SA)) then
         SA:ev(SA, lg=logbasesimp),
@@ -1289,7 +1297,7 @@ logic_to_poly_helper(ex, v) := block(
 
 /* Maxima does not require more than one argument to diff, e.g. diff(sin(x)) is ok in maxima.
    But, for student input we should require the variable! */
-nounint([ex]):= if ev(is(length(ex)>1),simp) then apply(nounify(integrate), ex) else error("int must have at least two arguments.")$
+nounint([ex]):= if ev(is(length(ex)>1),simp) then apply(nounify(int), ex) else error("int must have at least two arguments.")$
 noundiff([ex]):= if ev(is(length(ex)>1),simp) then apply(nounify(diff), ex) else error("diff must have at least two arguments.")$
 nounlimit([ex]):=apply(nounify(limit), ex)$
 
@@ -1311,6 +1319,10 @@ displaypmtex(ex):=block([al],
   sconcat("{", simplode(al, " \\pm "), "}")
   );
 texput(STACKpmOPT, displaypmtex);
+
+matchdeclare(pmpatex1,true);
+matchdeclare(pmpatex2,true);
+tellsimpafter(-(pmpatex1 #pm# pmpatex2),(-pmpatex1) #pm# pmpatex2);
 
 /* Count the occurance of an operator. */
 count_op(ex, ops):= block([count],

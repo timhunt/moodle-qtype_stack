@@ -517,6 +517,7 @@ $string['questiontestspass'] = 'All question tests passed.';
 $string['questiontestsdefault'] = '(Default)';
 $string['runquestiontests'] = 'Question tests & deployed variants';
 $string['runquestiontests_help'] = 'The question tests unit-test the questions to ensure the behaviour matches expectations expressed by the teacher, and deployed variants ensure random versions seen by a student are pre-tested against the question tests. These are tools to help you create and test reliable questions and should be used in all cases a question will be used by students.';
+$string['runquestiontests_alert'] = '<i class="icon fa fa-exclamation-circle text-danger fa-fw " title="Question is missing tests or variants" aria-label="Question is missing tests or variants"></i>';
 $string['seethisquestioninthequestionbank'] = 'See this question in the question bank';
 $string['showingundeployedvariant'] = 'Showing undeployed variant: {$a}';
 $string['switchtovariant'] = 'Switch to arbitrary variant';
@@ -903,6 +904,7 @@ $string['ATDiff_int']               = 'It looks like you have integrated instead
 $string['ATNumerical_SA_not_list']       = 'Your answer should be a list, but is not.  Note that the syntax to enter a list is to enclose the comma separated values with square brackets. ';
 $string['ATNumerical_SA_not_set']        = 'Your answer should be a set, but is not.  Note that the syntax to enter a set is to enclose the comma separated values with curly brackets. ';
 $string['ATNumerical_SA_not_number']     = 'Your answer should be a floating point number, but is not. ';
+$string['ATNumerical_SB_not_number']     = 'The value supplied for the teacher\'s answer should be a floating point number, but is not. This is an internal error with the test.  Please ask your teacher about this. ';
 $string['ATNumerical_FAILED']            = 'Your answer should be a floating point number, or a list or set of numbers.  It is not. ';
 $string['ATNumerical_STACKERROR_tol']    = 'The numerical tolerance for ATNumerical should be a floating point number, but is not.  This is an internal error with the test.  Please ask your teacher about this. ';
 
@@ -988,7 +990,7 @@ $string['Interval_illegal_entries']             = 'The following should not appe
 // Documentation strings.
 $string['stackDoc_404']                 = 'Error 404';
 $string['stackDoc_docs']                = 'STACK Documentation';
-$string['stackDoc_docs_desc']           = '<a href="{$a->link}">Documentation for STACK</a>: a local static wiki.';
+$string['stackDoc_docs_desc']           = '<a href="{$a->link}">Documentation for STACK</a>: a local static wiki documenting the code you actually have running on your server.';
 $string['stackDoc_home']                = 'Documentation home';
 $string['stackDoc_index']               = 'Category index';
 $string['stackDoc_siteMap']             = 'Site map';
@@ -996,6 +998,9 @@ $string['stackDoc_siteMap_en']          = 'English site map';
 $string['stackDoc_404message']          = 'File not found.';
 $string['stackDoc_directoryStructure']  = 'Directory structure';
 $string['stackDoc_version']             = 'Your site is running STACK version {$a}.';
+$string['stackDoc_AnswerTestResults']   = '# Answer test results
+
+This page exposes the results of running answer tests on STACK test cases.  This page is automatically generated from the STACK unit tests and is designed to show question authors what answer tests actually do.  This includes cases where answer tests currentl fail, which gives a negative expected mark.  Comments and further test cases are very welcome.';
 
 // Fact sheets.
 $string['greek_alphabet_name'] = 'The Greek Alphabet';
@@ -1270,6 +1275,12 @@ $string['calc_int_methods_parts_fact'] = '\[
 or alternatively: \[\int_a^bf(x)g(x)\,{\rm d}x=\left[f(x)\,\int
 g(x){\rm d}x\right]_a^b -\int_a^b{{\rm d}f\over {\rm
 d}x}\left\{\int g(x){\rm d}x\right\}{\rm d}x.\]';
+
+$string['calc_int_methods_parts_indefinite_name'] = 'Integration by Parts';
+$string['calc_int_methods_parts_indefinite_fact'] = '\[
+\int u{{\rm d}v\over {\rm d}x}{\rm d}x=uv- \int{{\rm d}u\over {\rm d}x}v\,{\rm d}x\]
+or alternatively: \[\int f(x)g(x)\,{\rm d}x=f(x)\,\int
+g(x){\rm d}x -\int {{\rm d}f\over {\rm d}x}\left\{\int g(x){\rm d}x\right\}{\rm d}x.\]';
 
 $string['Illegal_singleton_power'] = 'This input requires a numeric value presented in one of the following forms: <code>{$a->forms}</code>';
 $string['Illegal_singleton_floats'] = 'This input does not accept decimal numbers in the given form. This input requires a numeric value presented in one of the following forms: <code>{$a->forms}</code>';
