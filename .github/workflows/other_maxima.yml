@@ -1,4 +1,4 @@
-name: Test with other Maxima versions (expected to fail)
+name: PHPUnit with other Maxima versions (expected to fail)
 
 # This workflow runs the unit tests with several different versions of Maxima,
 # by building it from source.
@@ -16,6 +16,9 @@ jobs:
   test:
     runs-on: ubuntu-18.04
 
+    # This means we don't care if this fails (for now).
+    continue-on-error: true
+
     services:
       postgres:
         image: postgres:9.6
@@ -29,19 +32,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        experimental: [true]
+        lisp: ['sbcl', 'clisp']
+        maxima: ['5.38.1', '5.41.0', '5.44.0']
         php: ['7.4']
         moodle-branch: ['MOODLE_310_STABLE']
         database: ['pgsql']
-        lisp: ['sbcl', 'clisp']
-        maxima: ['5.38.1', '5.41.0', '5.44.0']
 
     steps:
       - name: Install required libraries
         run: |
-          sudo apt-get install texinfo gnuplot
+          sudo apt-get install ${{ matrix.lisp }} texinfo gnuplot
 
-      - name: Build Maxima
+      - name: Build Maxima ${{ matrix.lisp }} ${{ matrix.maxima }}
         run: |
           wget https://sourceforge.net/projects/maxima/files/Maxima-source/${{ matrix.maxima }}-source/maxima-${{ matrix.maxima }}.tar.gz
           tar -zxf maxima-${{ matrix.maxima }}.tar.gz
@@ -97,5 +99,4 @@ jobs:
           MOODLE_BRANCH: ${{ matrix.moodle-branch }}
 
       - name: PHPUnit tests
-        if: ${{ always() }}
         run: moodle-plugin-ci phpunit
