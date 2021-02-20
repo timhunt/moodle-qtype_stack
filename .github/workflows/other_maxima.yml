@@ -1,0 +1,101 @@
+name: Test with other Maxima versions (expected to fail)
+
+# This workflow runs the unit tests with several different versions of Maxima,
+# by building it from source.
+#
+# When I tried this, the GCL build did not just work, but that is what
+# comes with Ubuntu, so the main Moodle Plugin CI build already covers that.
+#
+# For each of SBCL and Clisp, we build the oldest supported version,
+# the version Chris recommends in the install instructions, and the latest.
+# We do all this one with one fixed version of Moodle.
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+
+    services:
+      postgres:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: 'postgres'
+          POSTGRES_HOST_AUTH_METHOD: 'trust'
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+
+    strategy:
+      fail-fast: false
+      matrix:
+        experimental: [true]
+        php: ['7.4']
+        moodle-branch: ['MOODLE_310_STABLE']
+        database: ['pgsql']
+        lisp: ['sbcl', 'clisp']
+        maxima: ['5.38.1', '5.41.0', '5.44.0']
+
+    steps:
+      - name: Install required libraries
+        run: |
+          sudo apt-get install texinfo gnuplot
+
+      - name: Build Maxima
+        run: |
+          wget https://sourceforge.net/projects/maxima/files/Maxima-source/${{ matrix.maxima }}-source/maxima-${{ matrix.maxima }}.tar.gz
+          tar -zxf maxima-${{ matrix.maxima }}.tar.gz
+          cd maxima-${{ matrix.maxima }}/
+
+          ./configure --with-${{ matrix.lisp }}
+          make
+          sudo make install
+
+          maxima --list-avail
+
+      - name: Check out repository code
+        uses: actions/checkout@v2
+        with:
+          path: plugin
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - name: Initialise moodle-plugin-ci
+        run: |
+          composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^3
+          echo $(cd ci/bin; pwd) >> $GITHUB_PATH
+          echo $(cd ci/vendor/bin; pwd) >> $GITHUB_PATH
+          sudo locale-gen en_AU.UTF-8
+          echo "NVM_DIR=$HOME/.nvm" >> $GITHUB_ENV
+
+      - name: Install moodle-plugin-ci
+        run: |
+          moodle-plugin-ci add-plugin maths/moodle-qbehaviour_dfexplicitvaildate
+          moodle-plugin-ci add-plugin maths/moodle-qbehaviour_dfcbmexplicitvaildate
+          moodle-plugin-ci add-plugin maths/moodle-qbehaviour_adaptivemultipart
+
+          moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1
+
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_PLATFORM",            "linux-optimised");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_MAXIMAVERSION",       "'`maxima --version | sed 's/Maxima //'`'");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_CASTIMEOUT",          "10");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_CASRESULTSCACHE",     "db");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_MAXIMACOMMAND",       "");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_MAXIMACOMMANDOPT",    "timeout --kill-after=10s 10s ${{ github.workspace }}/maxima_opt_auto -eval '\''(cl-user::run)'\''");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_MAXIMACOMMANDSERVER", "http://pool.home:8080/MaximaPool/MaximaPool");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_PLOTCOMMAND",         "gnuplot");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_MAXIMALIBRARIES",     "stats, distrib, descriptive, simplex");'
+          moodle-plugin-ci add-config 'define("QTYPE_STACK_TEST_CONFIG_CASDEBUGGING",        "0");'
+
+          cp ${{ github.workspace }}/moodledata/phpu_moodledata/stack/maxima_opt_auto ${{ github.workspace }}/maxima_opt_auto
+        env:
+          DB: ${{ matrix.database }}
+          MOODLE_BRANCH: ${{ matrix.moodle-branch }}
+
+      - name: PHPUnit tests
+        if: ${{ always() }}
+        run: moodle-plugin-ci phpunit
